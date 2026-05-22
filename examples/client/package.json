@@ -1,0 +1,9 @@
+{
+  "name": "cursor-sdk-server-example-client",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@trpc/client": "^11.1.0",
+    "cursor-sdk-server": "file:../.."
+  }
+}

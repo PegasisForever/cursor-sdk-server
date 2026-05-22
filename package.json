@@ -1,0 +1,49 @@
+{
+  "name": "cursor-sdk-server",
+  "version": "0.1.0",
+  "description": "Bun-based HTTP server wrapping the Cursor TypeScript SDK with a tRPC API",
+  "type": "module",
+  "bin": {
+    "cursor-sdk-server": "./dist/cli.js"
+  },
+  "main": "./dist/server.js",
+  "exports": {
+    "./router": {
+      "types": "./dist/router.d.ts",
+      "import": "./dist/router.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "import": "./dist/schemas.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SPEC.md"
+  ],
+  "scripts": {
+    "build": "bun build ./src/cli.ts --outdir dist --target bun && bun build ./src/router.ts --outdir dist --target bun && bun build ./src/schemas.ts --outdir dist --target bun && bun run build:types",
+    "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap --outDir dist",
+    "prepare": "bun run build",
+    "dev": "bun run src/cli.ts",
+    "start": "bun run dist/cli.js",
+    "compile": "bun build ./src/cli.ts --compile --target bun-linux-x64 --outfile dist/cursor-sdk-server-linux-x64",
+    "test:e2e": "bun run scripts/e2e-test.ts",
+    "test:example": "bun run examples/client/index.ts"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.13",
+    "@trpc/server": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@trpc/client": "^11.1.0",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "license": "MIT"
+}
