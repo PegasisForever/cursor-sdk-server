@@ -140,7 +140,7 @@ Procedures throw `TRPCError`. v0.1 exposes only the tRPC code and `error.message
 | -------------- | --------------------- | ---- |
 | `agent.create` | `TOO_MANY_REQUESTS`   | Active agent count ≥ `--max-agents` |
 | `agent.create` | `BAD_GATEWAY`         | SDK agent creation failed |
-| `agent.create` | `BAD_REQUEST`         | Invalid MCP config (e.g. neither `url` nor `command`) |
+| `agent.create` | `BAD_REQUEST`         | Invalid MCP config (Zod validation failure) |
 | `run.start`    | `NOT_FOUND`           | Unknown `agentId` |
 | `run.start`    | `PRECONDITION_FAILED` | Agent already has a non-terminal run |
 | `run.start`    | `BAD_GATEWAY`         | `agent.send()` failed before run registration |
@@ -181,33 +181,36 @@ export const RunStatus = z.enum([
 ### MCP
 
 ```typescript
-export const McpStdioServer = z.object({
-  type: z.literal("stdio").optional(),
-  command: z.string().min(1),
-  args: z.array(z.string()).optional(),
-  env: z.record(z.string(), z.string()).optional(),
-  cwd: z.string().optional(),
+export const LocalMcpServer = z.object({
+  type: z.literal("local"),
+  command: z.array(z.string().min(1)).min(1),
+  environment: z.record(z.string(), z.string()).optional(),
+  timeout: z.number().positive().optional(),
 });
 
-export const McpHttpAuth = z.object({
-  CLIENT_ID: z.string().min(1),
-  CLIENT_SECRET: z.string().optional(),
-  scopes: z.array(z.string()).optional(),
-});
-
-export const McpHttpServer = z.object({
-  type: z.enum(["http", "sse"]).optional(),
+export const RemoteMcpServer = z.object({
+  type: z.literal("remote"),
   url: z.string().url(),
   headers: z.record(z.string(), z.string()).optional(),
-  auth: McpHttpAuth.optional(),
+  timeout: z.number().positive().optional(),
 });
 
-export const McpServerConfig = z.union([McpStdioServer, McpHttpServer]);
-// Discrimination: if `url` is present → HTTP/SSE; else if `command` is present → stdio.
-// Configs with neither or both → BAD_REQUEST at agent.create.
+export const McpServerConfig = z.discriminatedUnion("type", [
+  LocalMcpServer,
+  RemoteMcpServer,
+]);
 
-export const McpServers = z.record(z.string(), McpServerConfig);
+export const McpServerMap = z.record(z.string(), McpServerConfig);
 ```
+
+The server translates wire configs to Cursor SDK format before `Agent.create()`:
+
+| Wire (`type`) | SDK |
+| ------------- | --- |
+| `local` | `{ type: "stdio", command, args?, env? }` — `command[0]` is the executable, remaining entries are args; `environment` → `env` |
+| `remote` | `{ type: "http", url, headers? }` |
+
+`timeout` is accepted on the wire but not passed to the SDK (unsupported there).
 
 ---
 
@@ -221,7 +224,7 @@ Create a durable local agent. The server holds the SDK `Agent` handle for the li
 export const CreateAgentInput = z.object({
   model: ModelSelection,
   cwd: z.string().min(1),
-  mcpServers: McpServers.optional(),
+  mcpServers: McpServerMap.optional(),
 });
 
 export const CreateAgentOutput = z.object({
@@ -237,10 +240,9 @@ const agent = await client.agent.create.mutate({
   cwd: "/workspaces/my-repo",
   mcpServers: {
     github: {
-      type: "stdio",
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-github"],
-      env: { GITHUB_TOKEN: process.env.GITHUB_TOKEN! },
+      type: "local",
+      command: ["npx", "-y", "@modelcontextprotocol/server-github"],
+      environment: { GITHUB_TOKEN: process.env.GITHUB_TOKEN! },
     },
   },
 });
@@ -498,10 +500,9 @@ const agent = await client.agent.create.mutate({
   cwd: "/workspaces/my-repo",
   mcpServers: {
     github: {
-      type: "stdio",
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-github"],
-      env: { GITHUB_TOKEN: process.env.GITHUB_TOKEN! },
+      type: "local",
+      command: ["npx", "-y", "@modelcontextprotocol/server-github"],
+      environment: { GITHUB_TOKEN: process.env.GITHUB_TOKEN! },
     },
   },
 });

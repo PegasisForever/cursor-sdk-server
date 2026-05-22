@@ -17,7 +17,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
             input: {
-                cwd?: string;
                 model?: {
                     id?: string;
                     params?: {
@@ -25,21 +24,17 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
                         value?: string;
                     }[];
                 };
+                cwd?: string;
                 mcpServers?: Record<string, {
-                    type?: "stdio";
-                    command?: string;
-                    args?: string[];
-                    env?: Record<string, string>;
-                    cwd?: string;
+                    type?: "local";
+                    command?: string[];
+                    environment?: Record<string, string>;
+                    timeout?: number;
                 } | {
-                    type?: "http" | "sse";
+                    type?: "remote";
                     url?: string;
+                    timeout?: number;
                     headers?: Record<string, string>;
-                    auth?: {
-                        CLIENT_ID?: string;
-                        CLIENT_SECRET?: string;
-                        scopes?: string[];
-                    };
                 }>;
             };
             output: {

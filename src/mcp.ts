@@ -1,32 +1,37 @@
+import type { McpServerConfig as SdkMcpServerConfig } from "@cursor/sdk";
 import type { z } from "zod";
-import { McpServerConfig, McpServers } from "./schemas.ts";
+import { McpServerConfig, McpServerMap } from "./schemas.ts";
 
-type McpServersType = z.infer<typeof McpServers>;
+type McpServerMapType = z.infer<typeof McpServerMap>;
 type McpServerConfigType = z.infer<typeof McpServerConfig>;
 
-export function validateMcpServers(mcpServers?: McpServersType): void {
-  if (!mcpServers) return;
-
-  for (const [name, config] of Object.entries(mcpServers)) {
-    const hasUrl = "url" in config && config.url !== undefined;
-    const hasCommand = "command" in config && config.command !== undefined;
-
-    if (hasUrl && hasCommand) {
-      throw new Error(
-        `MCP server "${name}" has both url and command; specify one transport`,
-      );
-    }
-    if (!hasUrl && !hasCommand) {
-      throw new Error(
-        `MCP server "${name}" must have either url or command`,
-      );
-    }
+export function toSdkMcpServer(config: McpServerConfigType): SdkMcpServerConfig {
+  if (config.type === "local") {
+    const [command, ...args] = config.command;
+    return {
+      type: "stdio",
+      command,
+      ...(args.length > 0 ? { args } : {}),
+      ...(config.environment ? { env: config.environment } : {}),
+    };
   }
+
+  return {
+    type: "http",
+    url: config.url,
+    ...(config.headers ? { headers: config.headers } : {}),
+  };
 }
 
 export function toSdkMcpServers(
-  mcpServers?: McpServersType,
-): Record<string, McpServerConfigType> | undefined {
+  mcpServers?: McpServerMapType,
+): Record<string, SdkMcpServerConfig> | undefined {
   if (!mcpServers) return undefined;
-  return mcpServers;
+
+  return Object.fromEntries(
+    Object.entries(mcpServers).map(([name, config]) => [
+      name,
+      toSdkMcpServer(config),
+    ]),
+  );
 }

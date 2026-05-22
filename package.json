@@ -1,6 +1,6 @@
 {
   "name": "cursor-sdk-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Bun-based HTTP server wrapping the Cursor TypeScript SDK with a tRPC API",
   "type": "module",
   "bin": {

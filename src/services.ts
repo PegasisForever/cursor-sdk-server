@@ -1,11 +1,11 @@
-import { Agent, CursorAgentError, type McpServerConfig, type ModelSelection, type Run, type SDKMessage } from "@cursor/sdk";
+import { Agent, CursorAgentError, type ModelSelection, type Run, type SDKMessage } from "@cursor/sdk";
 import { TRPCError } from "@trpc/server";
 import type { ServerConfig } from "./config.ts";
 import { generateAgentId, generateRunId } from "./ids.ts";
 import type { Logger } from "./logger.ts";
 import { AgentRegistry } from "./agent-registry.ts";
 import { RunRegistry, type RunSession } from "./run-registry.ts";
-import { toSdkMcpServers, validateMcpServers } from "./mcp.ts";
+import { toSdkMcpServers } from "./mcp.ts";
 import type { CreateAgentInputType, PollRunOutputType, RunStatusType } from "./schemas.ts";
 
 export interface ServerContext {
@@ -99,15 +99,6 @@ export async function createAgent(
     });
   }
 
-  try {
-    validateMcpServers(input.mcpServers);
-  } catch (error) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: error instanceof Error ? error.message : "Invalid MCP config",
-    });
-  }
-
   const agentId = generateAgentId();
 
   try {
@@ -118,9 +109,7 @@ export async function createAgent(
         cwd: input.cwd,
         settingSources: ["all"],
       },
-      mcpServers: toSdkMcpServers(input.mcpServers) as
-        | Record<string, McpServerConfig>
-        | undefined,
+      mcpServers: toSdkMcpServers(input.mcpServers),
     });
 
     ctx.agents.set({

@@ -37,181 +37,99 @@ export declare const ModelSelection: z.ZodObject<{
     }[];
 }>;
 export declare const RunStatus: z.ZodEnum<["running", "finished", "error", "cancelled"]>;
-export declare const McpStdioServer: z.ZodObject<{
-    type: z.ZodOptional<z.ZodLiteral<"stdio">>;
-    command: z.ZodString;
-    args: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    cwd: z.ZodOptional<z.ZodString>;
+export declare const LocalMcpServer: z.ZodObject<{
+    type: z.ZodLiteral<"local">;
+    command: z.ZodArray<z.ZodString, "many">;
+    environment: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }>;
-export declare const McpHttpAuth: z.ZodObject<{
-    CLIENT_ID: z.ZodString;
-    CLIENT_SECRET: z.ZodOptional<z.ZodString>;
-    scopes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-}, "strip", z.ZodTypeAny, {
-    CLIENT_ID?: string;
-    CLIENT_SECRET?: string;
-    scopes?: string[];
-}, {
-    CLIENT_ID?: string;
-    CLIENT_SECRET?: string;
-    scopes?: string[];
-}>;
-export declare const McpHttpServer: z.ZodObject<{
-    type: z.ZodOptional<z.ZodEnum<["http", "sse"]>>;
+export declare const RemoteMcpServer: z.ZodObject<{
+    type: z.ZodLiteral<"remote">;
     url: z.ZodString;
     headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    auth: z.ZodOptional<z.ZodObject<{
-        CLIENT_ID: z.ZodString;
-        CLIENT_SECRET: z.ZodOptional<z.ZodString>;
-        scopes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }>;
-export declare const McpServerConfig: z.ZodUnion<[z.ZodObject<{
-    type: z.ZodOptional<z.ZodLiteral<"stdio">>;
-    command: z.ZodString;
-    args: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    cwd: z.ZodOptional<z.ZodString>;
+export declare const McpServerConfig: z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+    type: z.ZodLiteral<"local">;
+    command: z.ZodArray<z.ZodString, "many">;
+    environment: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }>, z.ZodObject<{
-    type: z.ZodOptional<z.ZodEnum<["http", "sse"]>>;
+    type: z.ZodLiteral<"remote">;
     url: z.ZodString;
     headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    auth: z.ZodOptional<z.ZodObject<{
-        CLIENT_ID: z.ZodString;
-        CLIENT_SECRET: z.ZodOptional<z.ZodString>;
-        scopes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }>]>;
-export declare const McpServers: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodObject<{
-    type: z.ZodOptional<z.ZodLiteral<"stdio">>;
-    command: z.ZodString;
-    args: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    cwd: z.ZodOptional<z.ZodString>;
+export declare const McpServerMap: z.ZodRecord<z.ZodString, z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+    type: z.ZodLiteral<"local">;
+    command: z.ZodArray<z.ZodString, "many">;
+    environment: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }, {
-    type?: "stdio";
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
+    type?: "local";
+    command?: string[];
+    environment?: Record<string, string>;
+    timeout?: number;
 }>, z.ZodObject<{
-    type: z.ZodOptional<z.ZodEnum<["http", "sse"]>>;
+    type: z.ZodLiteral<"remote">;
     url: z.ZodString;
     headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    auth: z.ZodOptional<z.ZodObject<{
-        CLIENT_ID: z.ZodString;
-        CLIENT_SECRET: z.ZodOptional<z.ZodString>;
-        scopes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }, {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    }>>;
+    timeout: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }, {
-    type?: "http" | "sse";
+    type?: "remote";
     url?: string;
+    timeout?: number;
     headers?: Record<string, string>;
-    auth?: {
-        CLIENT_ID?: string;
-        CLIENT_SECRET?: string;
-        scopes?: string[];
-    };
 }>]>>;
 export declare const CreateAgentInput: z.ZodObject<{
     model: z.ZodObject<{
@@ -240,62 +158,38 @@ export declare const CreateAgentInput: z.ZodObject<{
         }[];
     }>;
     cwd: z.ZodString;
-    mcpServers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodObject<{
-        type: z.ZodOptional<z.ZodLiteral<"stdio">>;
-        command: z.ZodString;
-        args: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        env: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        cwd: z.ZodOptional<z.ZodString>;
+    mcpServers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodDiscriminatedUnion<"type", [z.ZodObject<{
+        type: z.ZodLiteral<"local">;
+        command: z.ZodArray<z.ZodString, "many">;
+        environment: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        timeout: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
-        type?: "stdio";
-        command?: string;
-        args?: string[];
-        env?: Record<string, string>;
-        cwd?: string;
+        type?: "local";
+        command?: string[];
+        environment?: Record<string, string>;
+        timeout?: number;
     }, {
-        type?: "stdio";
-        command?: string;
-        args?: string[];
-        env?: Record<string, string>;
-        cwd?: string;
+        type?: "local";
+        command?: string[];
+        environment?: Record<string, string>;
+        timeout?: number;
     }>, z.ZodObject<{
-        type: z.ZodOptional<z.ZodEnum<["http", "sse"]>>;
+        type: z.ZodLiteral<"remote">;
         url: z.ZodString;
         headers: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        auth: z.ZodOptional<z.ZodObject<{
-            CLIENT_ID: z.ZodString;
-            CLIENT_SECRET: z.ZodOptional<z.ZodString>;
-            scopes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        }, "strip", z.ZodTypeAny, {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        }, {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        }>>;
+        timeout: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
-        type?: "http" | "sse";
+        type?: "remote";
         url?: string;
+        timeout?: number;
         headers?: Record<string, string>;
-        auth?: {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        };
     }, {
-        type?: "http" | "sse";
+        type?: "remote";
         url?: string;
+        timeout?: number;
         headers?: Record<string, string>;
-        auth?: {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        };
     }>]>>>;
 }, "strip", z.ZodTypeAny, {
-    cwd?: string;
     model?: {
         id?: string;
         params?: {
@@ -303,24 +197,19 @@ export declare const CreateAgentInput: z.ZodObject<{
             value?: string;
         }[];
     };
+    cwd?: string;
     mcpServers?: Record<string, {
-        type?: "stdio";
-        command?: string;
-        args?: string[];
-        env?: Record<string, string>;
-        cwd?: string;
+        type?: "local";
+        command?: string[];
+        environment?: Record<string, string>;
+        timeout?: number;
     } | {
-        type?: "http" | "sse";
+        type?: "remote";
         url?: string;
+        timeout?: number;
         headers?: Record<string, string>;
-        auth?: {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        };
     }>;
 }, {
-    cwd?: string;
     model?: {
         id?: string;
         params?: {
@@ -328,21 +217,17 @@ export declare const CreateAgentInput: z.ZodObject<{
             value?: string;
         }[];
     };
+    cwd?: string;
     mcpServers?: Record<string, {
-        type?: "stdio";
-        command?: string;
-        args?: string[];
-        env?: Record<string, string>;
-        cwd?: string;
+        type?: "local";
+        command?: string[];
+        environment?: Record<string, string>;
+        timeout?: number;
     } | {
-        type?: "http" | "sse";
+        type?: "remote";
         url?: string;
+        timeout?: number;
         headers?: Record<string, string>;
-        auth?: {
-            CLIENT_ID?: string;
-            CLIENT_SECRET?: string;
-            scopes?: string[];
-        };
     }>;
 }>;
 export declare const CreateAgentOutput: z.ZodObject<{

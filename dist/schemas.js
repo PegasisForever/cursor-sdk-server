@@ -4004,30 +4004,27 @@ var RunStatus = exports_external.enum([
   "error",
   "cancelled"
 ]);
-var McpStdioServer = exports_external.object({
-  type: exports_external.literal("stdio").optional(),
-  command: exports_external.string().min(1),
-  args: exports_external.array(exports_external.string()).optional(),
-  env: exports_external.record(exports_external.string(), exports_external.string()).optional(),
-  cwd: exports_external.string().optional()
+var LocalMcpServer = exports_external.object({
+  type: exports_external.literal("local"),
+  command: exports_external.array(exports_external.string().min(1)).min(1),
+  environment: exports_external.record(exports_external.string(), exports_external.string()).optional(),
+  timeout: exports_external.number().positive().optional()
 });
-var McpHttpAuth = exports_external.object({
-  CLIENT_ID: exports_external.string().min(1),
-  CLIENT_SECRET: exports_external.string().optional(),
-  scopes: exports_external.array(exports_external.string()).optional()
-});
-var McpHttpServer = exports_external.object({
-  type: exports_external.enum(["http", "sse"]).optional(),
+var RemoteMcpServer = exports_external.object({
+  type: exports_external.literal("remote"),
   url: exports_external.string().url(),
   headers: exports_external.record(exports_external.string(), exports_external.string()).optional(),
-  auth: McpHttpAuth.optional()
+  timeout: exports_external.number().positive().optional()
 });
-var McpServerConfig = exports_external.union([McpStdioServer, McpHttpServer]);
-var McpServers = exports_external.record(exports_external.string(), McpServerConfig);
+var McpServerConfig = exports_external.discriminatedUnion("type", [
+  LocalMcpServer,
+  RemoteMcpServer
+]);
+var McpServerMap = exports_external.record(exports_external.string(), McpServerConfig);
 var CreateAgentInput = exports_external.object({
   model: ModelSelection,
   cwd: exports_external.string().min(1),
-  mcpServers: McpServers.optional()
+  mcpServers: McpServerMap.optional()
 });
 var CreateAgentOutput = exports_external.object({
   agentId: AgentId
@@ -4066,15 +4063,14 @@ export {
   StartRunInput,
   RunStatus,
   RunId,
+  RemoteMcpServer,
   PollRunOutput,
   PollRunInput,
   ModelSelection,
   ModelParam,
-  McpStdioServer,
-  McpServers,
+  McpServerMap,
   McpServerConfig,
-  McpHttpServer,
-  McpHttpAuth,
+  LocalMcpServer,
   CreateAgentOutput,
   CreateAgentInput,
   AgentId

@@ -20,35 +20,31 @@ export const RunStatus = z.enum([
   "cancelled",
 ]);
 
-export const McpStdioServer = z.object({
-  type: z.literal("stdio").optional(),
-  command: z.string().min(1),
-  args: z.array(z.string()).optional(),
-  env: z.record(z.string(), z.string()).optional(),
-  cwd: z.string().optional(),
+export const LocalMcpServer = z.object({
+  type: z.literal("local"),
+  command: z.array(z.string().min(1)).min(1),
+  environment: z.record(z.string(), z.string()).optional(),
+  timeout: z.number().positive().optional(),
 });
 
-export const McpHttpAuth = z.object({
-  CLIENT_ID: z.string().min(1),
-  CLIENT_SECRET: z.string().optional(),
-  scopes: z.array(z.string()).optional(),
-});
-
-export const McpHttpServer = z.object({
-  type: z.enum(["http", "sse"]).optional(),
+export const RemoteMcpServer = z.object({
+  type: z.literal("remote"),
   url: z.string().url(),
   headers: z.record(z.string(), z.string()).optional(),
-  auth: McpHttpAuth.optional(),
+  timeout: z.number().positive().optional(),
 });
 
-export const McpServerConfig = z.union([McpStdioServer, McpHttpServer]);
+export const McpServerConfig = z.discriminatedUnion("type", [
+  LocalMcpServer,
+  RemoteMcpServer,
+]);
 
-export const McpServers = z.record(z.string(), McpServerConfig);
+export const McpServerMap = z.record(z.string(), McpServerConfig);
 
 export const CreateAgentInput = z.object({
   model: ModelSelection,
   cwd: z.string().min(1),
-  mcpServers: McpServers.optional(),
+  mcpServers: McpServerMap.optional(),
 });
 
 export const CreateAgentOutput = z.object({
