@@ -1,5 +1,5 @@
 node_modules/
-dist/
+dist/cursor-sdk-server-linux-x64
 .env
 .env.*
 !.env.example
