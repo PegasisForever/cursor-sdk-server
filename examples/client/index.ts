@@ -32,14 +32,14 @@ async function main() {
 
   for (;;) {
     const poll = await client.run.poll.mutate({ runId: run.runId });
-    for (const text of poll.messages) {
+    for (const text of poll.messages ?? []) {
       if (text.trim()) console.log("[thinking]", text);
     }
     if (poll.status === "finished") {
       console.log("done:", poll.resultText);
       break;
     }
-    if (TERMINAL.has(poll.status)) break;
+    if (poll.status && TERMINAL.has(poll.status)) break;
     await new Promise((r) => setTimeout(r, 500));
   }
 }
