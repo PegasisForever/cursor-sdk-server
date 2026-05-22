@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const AgentId = z.string().regex(/^agt_[0-9A-HJKMNP-TV-Z]{26}$/);
-export const RunId = z.string().regex(/^run_[0-9A-HJKMNP-TV-Z]{26}$/);
+export const AgentId = z.string().uuid();
+export const RunId = z.string().uuid();
 
 export const ModelParam = z.object({
   id: z.string(),

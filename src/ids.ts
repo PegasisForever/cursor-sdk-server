@@ -1,9 +1,7 @@
-import { ulid } from "ulid";
-
 export function generateAgentId(): string {
-  return `agt_${ulid()}`;
+  return crypto.randomUUID();
 }
 
 export function generateRunId(): string {
-  return `run_${ulid()}`;
+  return crypto.randomUUID();
 }

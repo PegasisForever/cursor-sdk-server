@@ -96,6 +96,10 @@ export function startServer(config: ServerConfig): StartedServer {
   process.once("SIGINT", handleSignal);
   process.once("SIGTERM", handleSignal);
 
+  process.on("unhandledRejection", (reason) => {
+    logger.warn("Unhandled rejection (ignored)", reason);
+  });
+
   return { url, stop };
 }
 
