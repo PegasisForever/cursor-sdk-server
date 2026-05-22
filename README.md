@@ -29,16 +29,31 @@ bun run dev
 | `--run-buffer-size` | `CURSOR_SDK_SERVER_RUN_BUFFER_SIZE` | `10000` | Max thinking strings per run |
 | `--log-level` | `CURSOR_SDK_SERVER_LOG_LEVEL` | `info` | `debug` \| `info` \| `warn` \| `error` |
 
-## Download binary (Linux x64)
+## Install (Linux x64)
 
-Download the latest standalone binary from [GitHub Releases](https://github.com/PegasisForever/cursor-sdk-server/releases):
+Requires [Bun](https://bun.sh) >= 1.0. Downloads the release bundle, installs dependencies, and adds `cursor-sdk-server` to `~/.local/bin/`.
 
 ```bash
-curl -LO https://github.com/PegasisForever/cursor-sdk-server/releases/latest/download/cursor-sdk-server-linux-x64
-chmod +x cursor-sdk-server-linux-x64
-export CURSOR_API_KEY="cursor_..."
-./cursor-sdk-server-linux-x64
+curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash
 ```
+
+Install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash -s -- 0.3.0
+```
+
+Then run:
+
+```bash
+export CURSOR_API_KEY="cursor_..."
+cursor-sdk-server
+# cursor-sdk-server listening on http://127.0.0.1:3847/trpc
+```
+
+The app is installed to `~/.local/share/cursor-sdk-server`. Override with `CURSOR_SDK_SERVER_HOME`.
+
+Ensure `~/.local/bin` is in your `PATH`.
 
 ## Client usage (git dependency + tRPC types)
 
@@ -124,7 +139,8 @@ A runnable example lives in [`examples/client/`](./examples/client/).
 bun install
 bun run dev          # start server from source
 bun run build        # build dist + type declarations
-bun run compile      # standalone Linux x64 binary
+bun run build:bundle # create release tarball in .release/
+bun run test:install # test install script + e2e (requires CURSOR_API_KEY)
 bun run test:e2e     # end-to-end test (requires CURSOR_API_KEY)
 ```
 

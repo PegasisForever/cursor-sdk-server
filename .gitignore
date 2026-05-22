@@ -1,4 +1,5 @@
 node_modules/
+.release/
 dist/cursor-sdk-server-linux-x64
 .env
 .env.*

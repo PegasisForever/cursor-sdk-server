@@ -1,6 +1,6 @@
 {
   "name": "cursor-sdk-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bun-based HTTP server wrapping the Cursor TypeScript SDK with a tRPC API",
   "type": "module",
   "bin": {
@@ -23,13 +23,14 @@
     "SPEC.md"
   ],
   "scripts": {
-    "build": "bun build ./src/cli.ts --outdir dist --target bun && bun build ./src/router.ts --outdir dist --target bun && bun build ./src/schemas.ts --outdir dist --target bun && bun run build:types",
+    "build": "bun build ./src/cli.ts --outdir dist --target bun --external sqlite3 && bun build ./src/router.ts --outdir dist --target bun && bun build ./src/schemas.ts --outdir dist --target bun && bun run build:types",
     "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap --outDir dist",
+    "build:bundle": "bash scripts/build-release-bundle.sh",
     "prepare": "bun run build",
     "dev": "bun run src/cli.ts",
     "start": "bun run dist/cli.js",
-    "compile": "bun build ./src/cli.ts --compile --target bun-linux-x64 --outfile dist/cursor-sdk-server-linux-x64",
     "test:e2e": "bun run scripts/e2e-test.ts",
+    "test:install": "bash scripts/test-install.sh",
     "test:example": "bun run examples/client/index.ts"
   },
   "dependencies": {
