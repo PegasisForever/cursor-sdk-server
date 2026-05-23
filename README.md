@@ -31,7 +31,9 @@ bun run dev
 
 ## Install (Linux x64)
 
-Requires [Bun](https://bun.sh) >= 1.0. Downloads the release bundle, installs dependencies, and adds `cursor-sdk-server` to `~/.local/bin/`.
+Downloads a portable Bun runtime (kept inside the install directory, not added to your PATH), the release bundle, app dependencies, and a `cursor-sdk-server` launcher in `~/.local/bin/`.
+
+Requires `curl` and `unzip` only.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash
@@ -51,7 +53,7 @@ cursor-sdk-server
 # cursor-sdk-server listening on http://127.0.0.1:3847/trpc
 ```
 
-The app is installed to `~/.local/share/cursor-sdk-server`. Override with `CURSOR_SDK_SERVER_HOME`.
+The app is installed to `~/.local/share/cursor-sdk-server` (including a private Bun at `~/.local/share/cursor-sdk-server/bun/bin/bun`). Override the install dir with `CURSOR_SDK_SERVER_HOME`. Override the Bun version with `CURSOR_SDK_SERVER_BUN_VERSION` (default `1.3.14`).
 
 Ensure `~/.local/bin` is in your `PATH`.
 

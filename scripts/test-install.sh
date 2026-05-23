@@ -20,12 +20,22 @@ cd "$ROOT"
 bun run build:bundle
 
 export HOME="$TEST_HOME"
-export PATH="${TEST_BIN}:${PATH}"
+ORIG_PATH="$PATH"
+export PATH="${TEST_BIN}:${ORIG_PATH}"
 export CURSOR_SDK_SERVER_HOME="$TEST_SHARE"
 export CURSOR_SDK_SERVER_BUNDLE="${ROOT}/.release/cursor-sdk-server-linux-x64-$(bun -e "console.log(JSON.parse(await Bun.file('$ROOT/package.json').text()).version)").tar.gz"
 
 mkdir -p "$TEST_BIN"
-bash "$ROOT/scripts/install.sh"
+
+# Install should not depend on a system Bun on PATH.
+PATH="/usr/bin:/bin" bash "$ROOT/scripts/install.sh"
+
+if [ ! -x "$TEST_SHARE/bun/bin/bun" ]; then
+  echo "error: portable bun not installed" >&2
+  exit 1
+fi
+
+export PATH="${TEST_BIN}:${ORIG_PATH}"
 
 if [ ! -x "$TEST_BIN/cursor-sdk-server" ]; then
   echo "error: launcher not created" >&2
