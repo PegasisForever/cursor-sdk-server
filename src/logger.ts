@@ -1,4 +1,4 @@
-import type { LogLevel, ServerConfig } from "./config.ts";
+import type { LogLevel, ServerConfig } from "./config.js";
 
 const LEVEL_RANK: Record<LogLevel, number> = {
   debug: 10,

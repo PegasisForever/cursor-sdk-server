@@ -1,4 +1,4 @@
-import type { LogLevel, ServerConfig } from "./config.ts";
+import type { LogLevel, ServerConfig } from "./config.js";
 export declare class Logger {
     private readonly level;
     constructor(level: LogLevel);

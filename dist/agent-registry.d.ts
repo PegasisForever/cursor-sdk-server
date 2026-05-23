@@ -1,5 +1,5 @@
 import type { SDKAgent } from "@cursor/sdk";
-import type { CreateAgentInputType } from "./schemas.ts";
+import type { CreateAgentInputType } from "./schemas.js";
 export interface AgentRecord {
     agentId: string;
     agent: SDKAgent;

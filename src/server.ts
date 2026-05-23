@@ -1,14 +1,15 @@
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import type { ServerConfig } from "./config.ts";
-import { createLogger } from "./logger.ts";
-import { AgentRegistry } from "./agent-registry.ts";
-import { RunRegistry } from "./run-registry.ts";
-import { appRouter } from "./router.ts";
+import { createServer, type Server } from "node:http";
+import { createHTTPHandler } from "@trpc/server/adapters/standalone";
+import type { ServerConfig } from "./config.js";
+import { createLogger } from "./logger.js";
+import { AgentRegistry } from "./agent-registry.js";
+import { RunRegistry } from "./run-registry.js";
+import { appRouter } from "./router.js";
 import {
   evictExpiredRuns,
   shutdownServer,
   type ServerContext,
-} from "./services.ts";
+} from "./services.js";
 
 export interface StartedServer {
   url: string;
@@ -40,51 +41,52 @@ export function startServer(config: ServerConfig): StartedServer {
   }, 60_000);
   evictionTimer.unref();
 
-  let server: ReturnType<typeof Bun.serve> | undefined;
+  const trpcHandler = createHTTPHandler({
+    router: appRouter,
+    createContext: () => ctx,
+    basePath: "/trpc/",
+    onError({ error, path }) {
+      logger.error(`tRPC error on ${path ?? "unknown"}`, error);
+    },
+  });
+
+  let server: Server | undefined;
 
   const stop = async () => {
     clearInterval(evictionTimer);
     if (server) {
-      server.stop(true);
+      await new Promise<void>((resolve, reject) => {
+        server!.close((err) => (err ? reject(err) : resolve()));
+      });
       server = undefined;
     }
     await shutdownServer(ctx);
   };
 
-  server = Bun.serve({
-    hostname: config.host,
-    port: config.port,
-    fetch(request) {
-      if (ctx.shuttingDown) {
-        return new Response("Server shutting down", { status: 503 });
-      }
+  server = createServer((req, res) => {
+    for (const [key, value] of Object.entries(corsHeaders())) {
+      res.setHeader(key, value);
+    }
 
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: corsHeaders(),
-        });
-      }
+    if (ctx.shuttingDown) {
+      res.writeHead(503);
+      res.end("Server shutting down");
+      return;
+    }
 
-      return fetchRequestHandler({
-        endpoint: "/trpc",
-        req: request,
-        router: appRouter,
-        createContext: () => ctx,
-        responseMeta() {
-          return {
-            headers: corsHeaders(),
-          };
-        },
-        onError({ error, path }) {
-          logger.error(`tRPC error on ${path ?? "unknown"}`, error);
-        },
-      });
-    },
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    trpcHandler(req, res);
   });
 
-  const url = `http://${config.host}:${config.port}/trpc`;
-  console.log(`cursor-sdk-server listening on ${url}`);
+  server.listen(config.port, config.host, () => {
+    const url = `http://${config.host}:${config.port}/trpc`;
+    console.log(`cursor-sdk-server listening on ${url}`);
+  });
 
   const handleSignal = () => {
     void (async () => {
@@ -100,7 +102,10 @@ export function startServer(config: ServerConfig): StartedServer {
     logger.warn("Unhandled rejection (ignored)", reason);
   });
 
-  return { url, stop };
+  return {
+    url: `http://${config.host}:${config.port}/trpc`,
+    stop,
+  };
 }
 
 function corsHeaders(): Record<string, string> {

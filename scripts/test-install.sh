@@ -17,30 +17,29 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$ROOT"
-bun run build:bundle
+npm run build:bundle
 
 export HOME="$TEST_HOME"
 ORIG_PATH="$PATH"
-export PATH="${TEST_BIN}:${ORIG_PATH}"
 export CURSOR_SDK_SERVER_HOME="$TEST_SHARE"
-export CURSOR_SDK_SERVER_BUNDLE="${ROOT}/.release/cursor-sdk-server-linux-x64-$(bun -e "console.log(JSON.parse(await Bun.file('$ROOT/package.json').text()).version)").tar.gz"
+export CURSOR_SDK_SERVER_BUNDLE="${ROOT}/.release/cursor-sdk-server-linux-x64-$(node -p "require('${ROOT}/package.json').version").tar.gz"
 
 mkdir -p "$TEST_BIN"
 
-# Install should not depend on a system Bun on PATH.
+# Install should not depend on a system Node/npm on PATH.
 PATH="/usr/bin:/bin" bash "$ROOT/scripts/install.sh"
 
-if [ ! -x "$TEST_SHARE/bun/bin/bun" ]; then
-  echo "error: portable bun not installed" >&2
+if [ ! -x "$TEST_SHARE/node/bin/node" ]; then
+  echo "error: portable node not installed" >&2
   exit 1
 fi
-
-export PATH="${TEST_BIN}:${ORIG_PATH}"
 
 if [ ! -x "$TEST_BIN/cursor-sdk-server" ]; then
   echo "error: launcher not created" >&2
   exit 1
 fi
+
+export PATH="${TEST_BIN}:${ORIG_PATH}"
 
 if [ -f "$ROOT/.env" ]; then
   set -a
@@ -65,45 +64,6 @@ for _ in $(seq 1 30); do
 done
 
 cd "$ROOT"
-bun -e "
-import { createTRPCClient, httpBatchLink, httpLink, splitLink } from '@trpc/client';
-import type { AppRouter } from './src/router.ts';
-
-const url = 'http://127.0.0.1:${PORT}/trpc';
-const client = createTRPCClient<AppRouter>({
-  links: [
-    splitLink({
-      condition(op) { return op.path === 'run.poll'; },
-      true: httpLink({ url }),
-      false: httpBatchLink({ url }),
-    }),
-  ],
-});
-
-const agent = await client.agent.create.mutate({
-  model: { id: 'composer-2.5' },
-  cwd: '$ROOT',
-});
-const run = await client.run.start.mutate({
-  agentId: agent.agentId,
-  prompt: 'Reply with exactly the word HELLO and nothing else.',
-});
-
-for (let i = 0; i < 120; i++) {
-  const poll = await client.run.poll.mutate({ runId: run.runId });
-  if (poll.status === 'finished') {
-    if (poll.resultText !== 'HELLO') {
-      throw new Error('unexpected result: ' + poll.resultText);
-    }
-    console.log('Install e2e passed:', poll.resultText);
-    process.exit(0);
-  }
-  if (poll.status === 'error' || poll.status === 'cancelled') {
-    throw new Error('terminal status: ' + poll.status);
-  }
-  await Bun.sleep(500);
-}
-throw new Error('poll timeout');
-"
+CURSOR_SDK_SERVER_TEST_PORT="$PORT" CURSOR_SDK_SERVER_TEST_CWD="$ROOT" tsx scripts/install-e2e-client.ts
 
 echo "Install test completed successfully"

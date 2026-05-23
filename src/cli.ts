@@ -1,6 +1,6 @@
-#!/usr/bin/env bun
-import { loadConfig } from "./config.ts";
-import { startServer } from "./server.ts";
+#!/usr/bin/env node
+import { loadConfig } from "./config.js";
+import { startServer } from "./server.js";
 
 try {
   const config = loadConfig();

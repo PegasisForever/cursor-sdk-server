@@ -6,9 +6,9 @@ import {
   PollRunOutput,
   StartRunInput,
   StartRunOutput,
-} from "./schemas.ts";
-import type { ServerContext } from "./services.ts";
-import { createAgent, pollRun, startRun } from "./services.ts";
+} from "./schemas.js";
+import type { ServerContext } from "./services.js";
+import { createAgent, pollRun, startRun } from "./services.js";
 
 export interface CreateContextOptions {
   ctx: ServerContext;

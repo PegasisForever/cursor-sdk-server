@@ -1,4 +1,4 @@
-import type { ServerConfig } from "./config.ts";
+import type { ServerConfig } from "./config.js";
 export interface StartedServer {
     url: string;
     stop: () => Promise<void>;

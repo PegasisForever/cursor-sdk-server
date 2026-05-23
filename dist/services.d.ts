@@ -1,8 +1,8 @@
-import type { ServerConfig } from "./config.ts";
-import type { Logger } from "./logger.ts";
-import { AgentRegistry } from "./agent-registry.ts";
-import { RunRegistry } from "./run-registry.ts";
-import type { CreateAgentInputType, PollRunOutputType } from "./schemas.ts";
+import type { ServerConfig } from "./config.js";
+import type { Logger } from "./logger.js";
+import { AgentRegistry } from "./agent-registry.js";
+import { RunRegistry } from "./run-registry.js";
+import type { CreateAgentInputType, PollRunOutputType } from "./schemas.js";
 export interface ServerContext {
     apiKey: string;
     config: ServerConfig;

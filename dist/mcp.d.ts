@@ -1,6 +1,6 @@
 import type { McpServerConfig as SdkMcpServerConfig } from "@cursor/sdk";
 import type { z } from "zod";
-import { McpServerConfig, McpServerMap } from "./schemas.ts";
+import { McpServerConfig, McpServerMap } from "./schemas.js";
 type McpServerMapType = z.infer<typeof McpServerMap>;
 type McpServerConfigType = z.infer<typeof McpServerConfig>;
 export declare function toSdkMcpServer(config: McpServerConfigType): SdkMcpServerConfig;

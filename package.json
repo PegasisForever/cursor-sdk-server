@@ -1,7 +1,7 @@
 {
   "name": "cursor-sdk-server",
-  "version": "0.3.1",
-  "description": "Bun-based HTTP server wrapping the Cursor TypeScript SDK with a tRPC API",
+  "version": "0.4.0",
+  "description": "Node.js HTTP server wrapping the Cursor TypeScript SDK with a tRPC API",
   "type": "module",
   "bin": {
     "cursor-sdk-server": "./dist/cli.js"
@@ -23,15 +23,14 @@
     "SPEC.md"
   ],
   "scripts": {
-    "build": "bun build ./src/cli.ts --outdir dist --target bun --external sqlite3 && bun build ./src/router.ts --outdir dist --target bun && bun build ./src/schemas.ts --outdir dist --target bun && bun run build:types",
-    "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap --outDir dist",
+    "build": "tsc",
     "build:bundle": "bash scripts/build-release-bundle.sh",
-    "prepare": "bun run build",
-    "dev": "bun run src/cli.ts",
-    "start": "bun run dist/cli.js",
-    "test:e2e": "bun run scripts/e2e-test.ts",
+    "prepare": "npm run build",
+    "dev": "tsx watch src/cli.ts",
+    "start": "node dist/cli.js",
+    "test:e2e": "tsx scripts/e2e-test.ts",
     "test:install": "bash scripts/test-install.sh",
-    "test:example": "bun run examples/client/index.ts"
+    "test:example": "tsx examples/client/index.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.13",
@@ -40,11 +39,12 @@
   },
   "devDependencies": {
     "@trpc/client": "^11.1.0",
-    "@types/bun": "latest",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   },
   "engines": {
-    "bun": ">=1.0.0"
+    "node": ">=24.0.0"
   },
   "license": "MIT"
 }

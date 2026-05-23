@@ -1,4 +1,4 @@
-import type { ServerContext } from "./services.ts";
+import type { ServerContext } from "./services.js";
 export interface CreateContextOptions {
     ctx: ServerContext;
 }
@@ -17,28 +17,28 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
             input: {
-                model?: {
-                    id?: string;
+                model: {
+                    id: string;
                     params?: {
-                        id?: string;
-                        value?: string;
-                    }[];
+                        id: string;
+                        value: string;
+                    }[] | undefined;
                 };
-                cwd?: string;
+                cwd: string;
                 mcpServers?: Record<string, {
-                    type?: "local";
-                    command?: string[];
-                    environment?: Record<string, string>;
-                    timeout?: number;
+                    type: "local";
+                    command: string[];
+                    environment?: Record<string, string> | undefined;
+                    timeout?: number | undefined;
                 } | {
-                    type?: "remote";
-                    url?: string;
-                    timeout?: number;
-                    headers?: Record<string, string>;
-                }>;
+                    type: "remote";
+                    url: string;
+                    timeout?: number | undefined;
+                    headers?: Record<string, string> | undefined;
+                }> | undefined;
             };
             output: {
-                agentId?: string;
+                agentId: string;
             };
             meta: object;
         }>;
@@ -51,32 +51,32 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
     }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         start: import("@trpc/server").TRPCMutationProcedure<{
             input: {
-                agentId?: string;
-                prompt?: string;
+                agentId: string;
+                prompt: string;
             };
             output: {
-                agentId?: string;
-                runId?: string;
+                agentId: string;
+                runId: string;
             };
             meta: object;
         }>;
         poll: import("@trpc/server").TRPCMutationProcedure<{
             input: {
-                runId?: string;
+                runId: string;
             };
             output: {
-                status?: "running";
-                runId?: string;
-                messages?: string[];
+                status: "running";
+                runId: string;
+                messages: string[];
             } | {
-                status?: "finished";
-                runId?: string;
-                messages?: string[];
-                resultText?: string;
+                status: "finished";
+                runId: string;
+                messages: string[];
+                resultText: string;
             } | {
-                status?: "error" | "cancelled";
-                runId?: string;
-                messages?: string[];
+                status: "error" | "cancelled";
+                runId: string;
+                messages: string[];
             };
             meta: object;
         }>;

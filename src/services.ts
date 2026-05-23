@@ -1,12 +1,12 @@
 import { Agent, CursorAgentError, type ModelSelection, type Run, type SDKMessage } from "@cursor/sdk";
 import { TRPCError } from "@trpc/server";
-import type { ServerConfig } from "./config.ts";
-import { generateAgentId, generateRunId } from "./ids.ts";
-import type { Logger } from "./logger.ts";
-import { AgentRegistry } from "./agent-registry.ts";
-import { RunRegistry, type RunSession } from "./run-registry.ts";
-import { toSdkMcpServers } from "./mcp.ts";
-import type { CreateAgentInputType, PollRunOutputType, RunStatusType } from "./schemas.ts";
+import type { ServerConfig } from "./config.js";
+import { generateAgentId, generateRunId } from "./ids.js";
+import type { Logger } from "./logger.js";
+import { AgentRegistry } from "./agent-registry.js";
+import { RunRegistry, type RunSession } from "./run-registry.js";
+import { toSdkMcpServers } from "./mcp.js";
+import type { CreateAgentInputType, PollRunOutputType, RunStatusType } from "./schemas.js";
 
 export interface ServerContext {
   apiKey: string;

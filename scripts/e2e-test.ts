@@ -1,14 +1,16 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * End-to-end test: start server, create agent, run, poll until terminal.
  */
 import { spawn } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 import { createTRPCClient, httpBatchLink, httpLink, splitLink } from "@trpc/client";
-import type { AppRouter } from "../src/router.ts";
+import type { AppRouter } from "../src/router.js";
 
 const PORT = 13847;
 const HOST = "127.0.0.1";
 const URL = `http://${HOST}:${PORT}/trpc`;
+const ROOT = process.cwd();
 
 function makeClient() {
   return createTRPCClient<AppRouter>({
@@ -32,14 +34,14 @@ async function waitForServer(maxAttempts = 30): Promise<void> {
     } catch {
       // retry
     }
-    await Bun.sleep(200);
+    await sleep(200);
   }
   throw new Error("Server did not become ready");
 }
 
 async function main() {
-  const server = spawn("bun", ["run", "src/cli.ts", "--port", String(PORT), "--host", HOST], {
-    cwd: "/workspaces/CursorAgentServer",
+  const server = spawn("node", ["dist/cli.js", "--port", String(PORT), "--host", HOST], {
+    cwd: ROOT,
     env: { ...process.env },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -64,7 +66,7 @@ async function main() {
 
     const agent = await client.agent.create.mutate({
       model: { id: "composer-2.5" },
-      cwd: "/workspaces/CursorAgentServer",
+      cwd: ROOT,
     });
     console.log("Created agent:", agent.agentId);
 
@@ -98,7 +100,7 @@ async function main() {
         break;
       }
 
-      await Bun.sleep(500);
+      await sleep(500);
       if (pollCount > 120) {
         throw new Error("Poll timeout after 60s");
       }
@@ -111,7 +113,7 @@ async function main() {
     console.log("E2E test passed");
   } finally {
     server.kill("SIGTERM");
-    await Promise.race([exitPromise, Bun.sleep(5000)]);
+    await Promise.race([exitPromise, sleep(5000)]);
   }
 }
 

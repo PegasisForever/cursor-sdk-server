@@ -1,6 +1,6 @@
 # cursor-sdk-server — API Specification
 
-A Bun-based HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`). The API is defined with [tRPC](https://trpc.io) and [Zod](https://zod.dev). Clients create local agents, start runs, and poll for unread progress messages. The server manages multiple concurrent agents in-process; clients do not authenticate to the server.
+A Node.js HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`). The API is defined with [tRPC](https://trpc.io) and [Zod](https://zod.dev). Clients create local agents, start runs, and poll for unread progress messages. The server manages multiple concurrent agents in-process; clients do not authenticate to the server.
 
 ---
 
@@ -8,8 +8,8 @@ A Bun-based HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.co
 
 ```bash
 export CURSOR_API_KEY="cursor_..."
-bun run cursor-sdk-server [options]
-# or, once packaged:
+npm run dev
+# or, once installed:
 cursor-sdk-server [options]
 ```
 
@@ -543,7 +543,7 @@ for (;;) {
 
 | Concern           | Approach                                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------------- |
-| HTTP server       | `Bun.serve` + `@trpc/server` adapter (`fetchRequestHandler`)                                            |
+| HTTP server       | `node:http` + `@trpc/server/adapters/standalone`                                                        |
 | Schema module     | `src/schemas.ts` — export Zod schemas and inferred TS types                                             |
 | Router module     | `src/router.ts` — export `appRouter` and `AppRouter`                                                    |
 | ID generation     | UUID v4 via `crypto.randomUUID()`                                                                       |

@@ -1,5 +1,5 @@
 import type { Run } from "@cursor/sdk";
-import type { RunStatusType } from "./schemas.ts";
+import type { RunStatusType } from "./schemas.js";
 export interface RunSession {
     runId: string;
     agentId: string;

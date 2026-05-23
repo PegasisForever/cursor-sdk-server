@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="$(bun -e "console.log(JSON.parse(await Bun.file('$ROOT/package.json').text()).version)")"
+VERSION="$(node -p "require('${ROOT}/package.json').version")"
 STAGING="$ROOT/.release/staging"
 OUT_DIR="$ROOT/.release"
 OUT="$OUT_DIR/cursor-sdk-server-linux-x64-${VERSION}.tar.gz"
@@ -11,22 +11,24 @@ rm -rf "$STAGING" "$OUT"
 mkdir -p "$STAGING" "$OUT_DIR"
 
 cd "$ROOT"
-bun run build
+npm run build
 
-bun -e "
-const pkg = JSON.parse(await Bun.file('$ROOT/package.json').text());
+node <<EOF
+const fs = require("node:fs");
+const pkg = JSON.parse(fs.readFileSync("${ROOT}/package.json", "utf8"));
 delete pkg.scripts.prepare;
 delete pkg.scripts.build;
-delete pkg.scripts['build:types'];
-delete pkg.scripts['build:bundle'];
-delete pkg.scripts.compile;
+delete pkg.scripts["build:bundle"];
 delete pkg.scripts.test;
 delete pkg.devDependencies;
-pkg.scripts = { start: 'bun dist/cli.js' };
-await Bun.write('$STAGING/package.json', JSON.stringify(pkg, null, 2) + '\n');
-"
+pkg.scripts = { start: "node dist/cli.js" };
+fs.writeFileSync("${STAGING}/package.json", JSON.stringify(pkg, null, 2) + "\n");
+EOF
 
 cp -r dist README.md SPEC.md "$STAGING/"
+if [ -f package-lock.json ]; then
+  cp package-lock.json "$STAGING/"
+fi
 
 tar -czf "$OUT" -C "$STAGING" .
 echo "Created $OUT"

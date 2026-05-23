@@ -1,20 +1,20 @@
 # cursor-sdk-server
 
-Bun-based HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`) with a [tRPC](https://trpc.io) + [Zod](https://zod.dev) API. Create local agents, start runs, and poll for thinking-only progress messages.
+Node.js HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`) with a [tRPC](https://trpc.io) + [Zod](https://zod.dev) API. Create local agents, start runs, and poll for thinking-only progress messages.
 
 See [SPEC.md](./SPEC.md) for the full API specification.
 
 ## Requirements
 
-- [Bun](https://bun.sh) >= 1.0
+- [Node.js](https://nodejs.org) >= 24 (for development)
 - `CURSOR_API_KEY` environment variable ([Cursor Dashboard → Integrations](https://cursor.com/dashboard/integrations))
 
 ## Quick start
 
 ```bash
 export CURSOR_API_KEY="cursor_..."
-bun install
-bun run dev
+npm install
+npm run dev
 # cursor-sdk-server listening on http://127.0.0.1:3847/trpc
 ```
 
@@ -31,9 +31,9 @@ bun run dev
 
 ## Install (Linux x64)
 
-Downloads a portable Bun runtime (kept inside the install directory, not added to your PATH), the release bundle, app dependencies, and a `cursor-sdk-server` launcher in `~/.local/bin/`.
+Downloads a portable Node.js 24 runtime (kept inside the install directory, not added to your PATH), the release bundle, app dependencies, and a `cursor-sdk-server` launcher in `~/.local/bin/`.
 
-Requires `curl` and `unzip` only.
+Requires `curl` and `tar` only.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash
@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/ma
 Install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash -s -- 0.3.0
+curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash -s -- 0.4.0
 ```
 
 Then run:
@@ -53,9 +53,9 @@ cursor-sdk-server
 # cursor-sdk-server listening on http://127.0.0.1:3847/trpc
 ```
 
-The app is installed to `~/.local/share/cursor-sdk-server` (including a private Bun at `~/.local/share/cursor-sdk-server/bun/bin/bun`). Override the install dir with `CURSOR_SDK_SERVER_HOME`. Override the Bun version with `CURSOR_SDK_SERVER_BUN_VERSION` (default `1.3.14`).
+The app is installed to `~/.local/share/cursor-sdk-server` (including a private Node.js at `~/.local/share/cursor-sdk-server/node/bin/node`). Override the install dir with `CURSOR_SDK_SERVER_HOME`. Override the Node version with `CURSOR_SDK_SERVER_NODE_VERSION` (default `24.14.0`).
 
-Ensure `~/.local/bin` is in your `PATH`.
+Ensure `~/.local/bin` is in your PATH.
 
 ## Client usage (git dependency + tRPC types)
 
@@ -138,12 +138,12 @@ A runnable example lives in [`examples/client/`](./examples/client/).
 ## Development
 
 ```bash
-bun install
-bun run dev          # start server from source
-bun run build        # build dist + type declarations
-bun run build:bundle # create release tarball in .release/
-bun run test:install # test install script + e2e (requires CURSOR_API_KEY)
-bun run test:e2e     # end-to-end test (requires CURSOR_API_KEY)
+npm install
+npm run dev          # start server from source (tsx watch)
+npm run build        # compile dist + type declarations
+npm run build:bundle # create release tarball in .release/
+npm run test:install # test install script + e2e (requires CURSOR_API_KEY)
+npm run test:e2e     # end-to-end test (requires CURSOR_API_KEY)
 ```
 
 ## License
