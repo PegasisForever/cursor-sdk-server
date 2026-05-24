@@ -4,7 +4,7 @@ import { createLogger } from "./logger.js";
 import { AgentRegistry } from "./agent-registry.js";
 import { RunRegistry } from "./run-registry.js";
 import { appRouter } from "./router.js";
-import { evictExpiredRuns, shutdownServer, } from "./services.js";
+import { shutdownServer } from "./services.js";
 export function startServer(config) {
     const apiKey = process.env.CURSOR_API_KEY;
     if (!apiKey) {
@@ -12,7 +12,7 @@ export function startServer(config) {
         process.exit(1);
     }
     const logger = createLogger(config);
-    const agents = new AgentRegistry(config.maxAgents);
+    const agents = new AgentRegistry();
     const runs = new RunRegistry();
     const ctx = {
         apiKey,
@@ -22,10 +22,6 @@ export function startServer(config) {
         runs,
         shuttingDown: false,
     };
-    const evictionTimer = setInterval(() => {
-        evictExpiredRuns(ctx);
-    }, 60_000);
-    evictionTimer.unref();
     const trpcHandler = createHTTPHandler({
         router: appRouter,
         createContext: () => ctx,
@@ -36,7 +32,6 @@ export function startServer(config) {
     });
     let server;
     const stop = async () => {
-        clearInterval(evictionTimer);
         if (server) {
             await new Promise((resolve, reject) => {
                 server.close((err) => (err ? reject(err) : resolve()));

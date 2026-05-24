@@ -67,16 +67,25 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 status: "running";
                 runId: string;
-                messages: string[];
+                messages: {
+                    eventType: "assistant" | "tool_call" | "thinking";
+                    content: string;
+                }[];
             } | {
                 status: "finished";
                 runId: string;
-                messages: string[];
+                messages: {
+                    eventType: "assistant" | "tool_call" | "thinking";
+                    content: string;
+                }[];
                 resultText: string;
             } | {
                 status: "error" | "cancelled";
                 runId: string;
-                messages: string[];
+                messages: {
+                    eventType: "assistant" | "tool_call" | "thinking";
+                    content: string;
+                }[];
             };
             meta: object;
         }>;

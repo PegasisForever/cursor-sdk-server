@@ -84,8 +84,10 @@ async function main() {
       const poll = await client.run.poll.mutate({ runId: run.runId });
       pollCount++;
 
-      for (const text of poll.messages) {
-        if (text.trim()) console.log("[thinking]", text.slice(0, 120));
+      for (const message of poll.messages) {
+        if (message.content.trim()) {
+          console.log(`[${message.eventType}]`, message.content.slice(0, 120));
+        }
       }
 
       if (poll.status === "finished") {

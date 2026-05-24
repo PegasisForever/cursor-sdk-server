@@ -20,9 +20,6 @@ The server **requires** `CURSOR_API_KEY` in the environment. It exits with a non
 | -------------- | ------------------------------ | ----------- | ------------------------------------------- |
 | `--port`       | `CURSOR_SDK_SERVER_PORT`       | `3847`      | HTTP listen port                            |
 | `--host`       | `CURSOR_SDK_SERVER_HOST`       | `127.0.0.1` | Bind address                                |
-| `--max-agents` | `CURSOR_SDK_SERVER_MAX_AGENTS` | `50` | Max concurrent agents before capacity error |
-| `--run-retention` | `CURSOR_SDK_SERVER_RUN_RETENTION` | `1h` | How long terminal runs stay pollable after completion |
-| `--run-buffer-size` | `CURSOR_SDK_SERVER_RUN_BUFFER_SIZE` | `10000` | Max thinking strings buffered per run |
 | `--log-level`  | `CURSOR_SDK_SERVER_LOG_LEVEL`  | `info`      | `debug` \| `info` \| `warn` \| `error`         |
 
 
@@ -42,7 +39,7 @@ cursor-sdk-server listening on http://127.0.0.1:3847/trpc
 4. **tRPC + Zod** — all inputs and outputs are validated with Zod; the router is the source of truth for the wire contract.
 5. **Polling, not streaming** — progress is fetched with repeated `run.poll` calls. No SSE or WebSocket.
 6. **Single poller per run** — exactly one client is expected to poll a given `runId`. The server tracks a per-run `deliveredIndex`; concurrent pollers on the same run are unsupported and behavior is undefined.
-7. **Thinking-only poll surface** — clients receive unread thinking text via `run.poll`. The server logs every SDK event internally but does not expose them on the wire.
+7. **Step-based poll surface** — clients receive unread conversation steps via `run.poll` as `{ eventType, content }` messages (`assistant`, `thinking`, `tool_call`). Steps come from SDK `onStep` during `agent.send()`.
 8. **One active run per agent** — at most one non-terminal run per `agentId`. A second `run.start` while a run is active returns `PRECONDITION_FAILED`.
 
 ---
@@ -111,7 +108,7 @@ export type AppRouter = typeof appRouter;
 | -------------- | -------- | -------------------------------------------------------- |
 | `agent.create` | mutation | Create a local agent                                     |
 | `run.start`    | mutation | Send a prompt; returns `runId`                           |
-| `run.poll`     | mutation | Fetch unread thinking text; advances `deliveredIndex`     |
+| `run.poll`     | mutation | Fetch unread conversation step messages; advances `deliveredIndex`     |
 
 `run.poll` is a mutation (not a query) because each call advances the per-run `deliveredIndex`. Clients must not retry polls automatically.
 
@@ -126,9 +123,8 @@ Procedures throw `TRPCError`. v0.1 exposes only the tRPC code and `error.message
 | tRPC code               | When                                              |
 | ----------------------- | ------------------------------------------------- |
 | `BAD_REQUEST`           | Zod validation failure or invalid field values      |
-| `NOT_FOUND`             | Unknown or evicted `agentId` / `runId`            |
+| `NOT_FOUND`             | Unknown `agentId` / `runId`            |
 | `PRECONDITION_FAILED`   | Operation rejected due to agent/run state         |
-| `TOO_MANY_REQUESTS`     | `--max-agents` capacity reached                   |
 | `INTERNAL_SERVER_ERROR` | Unexpected server failure                         |
 | `BAD_GATEWAY`           | `CursorAgentError` from `@cursor/sdk` before a run is registered |
 
@@ -138,13 +134,12 @@ Procedures throw `TRPCError`. v0.1 exposes only the tRPC code and `error.message
 
 | Procedure      | Code                  | When |
 | -------------- | --------------------- | ---- |
-| `agent.create` | `TOO_MANY_REQUESTS`   | Active agent count ≥ `--max-agents` |
 | `agent.create` | `BAD_GATEWAY`         | SDK agent creation failed |
 | `agent.create` | `BAD_REQUEST`         | Invalid MCP config (Zod validation failure) |
 | `run.start`    | `NOT_FOUND`           | Unknown `agentId` |
 | `run.start`    | `PRECONDITION_FAILED` | Agent already has a non-terminal run |
 | `run.start`    | `BAD_GATEWAY`         | `agent.send()` failed before run registration |
-| `run.poll`     | `NOT_FOUND`           | Unknown `runId`, or run evicted after `--run-retention` |
+| `run.poll`     | `NOT_FOUND`           | Unknown `runId` |
 
 ---
 
@@ -301,37 +296,42 @@ MCP servers configured at `agent.create` are reused for every run on that agent.
 
 ### `run.poll`
 
-Return unread thinking text not yet delivered to the client for this run. When the run finishes, include `resultText`.
+Return unread conversation step messages not yet delivered to the client for this run. When the run finishes, include `resultText`.
 
-**Single-poller contract:** the server maintains one `deliveredIndex` per `runId`. Each successful poll advances `deliveredIndex` through all returned strings. A second concurrent poller on the same run has undefined behavior — do not do this. Do not retry failed poll requests automatically.
+**Single-poller contract:** the server maintains one `deliveredIndex` per `runId`. Each successful poll advances `deliveredIndex` through all returned messages. A second concurrent poller on the same run has undefined behavior — do not do this. Do not retry failed poll requests automatically.
 
 **Poll interval:** clients should poll at ≥ 500 ms. The server does not rate-limit polls in v0.1.
 
-**Terminal re-poll:** after a run reaches a terminal state, further polls on the same `runId` (within retention) return empty `messages`, stable `status`, and the same `resultText` (if `finished`). `deliveredIndex` does not regress.
-
-**Eviction:** after `--run-retention` expires, `run.poll` returns `NOT_FOUND`.
+**Terminal re-poll:** after a run reaches a terminal state, further polls on the same `runId` return empty `messages`, stable `status`, and the same `resultText` (if `finished`). `deliveredIndex` does not regress. Run sessions are kept in memory until server shutdown.
 
 ```typescript
 export const PollRunInput = z.object({
   runId: RunId,
 });
 
+export const EventType = z.enum(["assistant", "tool_call", "thinking"]);
+
+export const PollMessage = z.object({
+  eventType: EventType,
+  content: z.string(),
+});
+
 export const PollRunOutput = z.discriminatedUnion("status", [
   z.object({
     runId: RunId,
     status: z.literal("running"),
-    messages: z.array(z.string()),
+    messages: z.array(PollMessage),
   }),
   z.object({
     runId: RunId,
     status: z.literal("finished"),
-    messages: z.array(z.string()),
+    messages: z.array(PollMessage),
     resultText: z.string(), // may be "" if SDK returned no final text
   }),
   z.object({
     runId: RunId,
     status: z.enum(["error", "cancelled"]),
-    messages: z.array(z.string()),
+    messages: z.array(PollMessage),
   }),
 ]);
 ```
@@ -344,8 +344,8 @@ const TERMINAL = new Set(["finished", "error", "cancelled"]);
 for (;;) {
   const poll = await client.run.poll.mutate({ runId: run.runId });
 
-  for (const text of poll.messages) {
-    console.log("[thinking]", text);
+  for (const message of poll.messages) {
+    console.log(`[${message.eventType}]`, message.content);
   }
 
   if (poll.status === "finished") {
@@ -365,11 +365,17 @@ for (;;) {
 
 | Field        | Description |
 | ------------ | ----------- |
-| `messages`   | Unread thinking text since the last poll, in arrival order. Each entry is the `text` field from one SDK `type: "thinking"` event, including empty strings. Empty array if nothing new. |
+| `messages`   | Unread conversation steps since the last poll, in arrival order. Each entry has `eventType` (`assistant` \| `thinking` \| `tool_call`) and human-readable `content`. Empty array if nothing new. |
 | `status`     | SDK run status — mirrored from `run.status`. See [Run status](#run-status). |
 | `resultText` | Present only when `status` is `finished`. Set from `run.wait()` → `RunResult.result`. May be `""` if the SDK returned no text. |
 
-Non-thinking SDK events (`assistant`, `tool_call`, `system`, etc.) are **not** returned to the client. They are written to server logs only.
+**`content` encoding by `eventType`**
+
+| `eventType`   | `content` |
+| ------------- | --------- |
+| `assistant`   | Full assistant reply text for the step |
+| `thinking`    | Thinking text; appends `(Nms)` when duration is set |
+| `tool_call`   | Tool name, then indented `Args:` / `Result:` sections |
 
 **Example response (in progress)**
 
@@ -378,8 +384,14 @@ Non-thinking SDK events (`assistant`, `tool_call`, `system`, etc.) are **not** r
   "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "status": "running",
   "messages": [
-    "Let me inspect the auth module first...",
-    "I'll read src/auth.ts to find the bug."
+    {
+      "eventType": "thinking",
+      "content": "Let me inspect the auth module first..."
+    },
+    {
+      "eventType": "tool_call",
+      "content": "read\nArgs:\n  path: src/auth.ts"
+    }
   ]
 }
 ```
@@ -391,7 +403,14 @@ Non-thinking SDK events (`assistant`, `tool_call`, `system`, etc.) are **not** r
   "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "status": "finished",
   "messages": [
-    "The issue is a missing null check before token validation."
+    {
+      "eventType": "thinking",
+      "content": "The issue is a missing null check before token validation."
+    },
+    {
+      "eventType": "assistant",
+      "content": "Fixed the null check in auth.ts."
+    }
   ],
   "resultText": "Fixed the null check in auth.ts."
 }
@@ -403,14 +422,9 @@ Non-thinking SDK events (`assistant`, `tool_call`, `system`, etc.) are **not** r
 
 Each successful `run.start` creates a `RunSession` and spawns a background task:
 
-1. **Register** — allocate `runId`, call `agent.send(prompt)`, hold the SDK `Run` handle.
-2. **Stream** — iterate `run.stream()`. For every `SDKMessage`:
-   - Log the full event.
-   - If `type === "thinking"`, append `event.text` to the thinking buffer (including `""`).
-   - After each event, set poll `status` from `run.status`.
-3. **Finalize** — after the stream ends, `await run.wait()`:
-   - Set poll `status` from `RunResult.status` (`"finished"`, `"error"`, or `"cancelled"`).
-   - If `finished`, set `resultText = result.result ?? ""`.
+1. **Register** — allocate `runId`, call `agent.send(prompt, { onStep })`, hold the SDK `Run` handle. Each `onStep` callback appends a poll message.
+2. **Wait** — background task calls `await run.wait()`. Subscribe to `run.onDidChangeStatus()` to keep poll `status` in sync while waiting.
+3. **Finalize** — set poll `status` and `resultText` (if `finished`) from `RunResult`.
 4. **Release agent slot** — mark the agent as eligible for a new `run.start`.
 
 If the server shuts down during step 2 or 3, cancel in-flight SDK runs; poll `status` mirrors the resulting SDK status (typically `"cancelled"`).
@@ -428,24 +442,7 @@ Poll `status` is the SDK run status — no custom wire values. Use the same stri
 | `error`      | `run.wait()` returned `status: "error"` |
 | `cancelled`  | `run.wait()` returned `status: "cancelled"`, or run was cancelled during server shutdown |
 
-The server updates poll `status` from `run.status` during streaming and from `RunResult.status` after `run.wait()`. Optionally subscribe via `run.onDidChangeStatus()` to keep status in sync.
-
-SDK stream `status` events (`CREATING`, `RUNNING`, … on `SDKStatusMessage`) are logged only — they are not used for poll `status`.
-
----
-
-## Event handling (server-internal)
-
-For each run, the background task follows [Run lifecycle](#run-lifecycle-server-internal):
-
-| Action                | SDK events |
-| --------------------- | ---------- |
-| Log                   | All events (`system`, `user`, `assistant`, `thinking`, `tool_call`, `status`, `task`, `request`, …) |
-| Append to poll buffer | `thinking` only — append `event.text` (including empty strings) |
-
-Granularity is hardcoded to message-level (`run.stream()`); `onDelta` is not used. Final assistant text for `resultText` comes from `run.wait()`, not from stream `assistant` events.
-
-**Thinking buffer overflow:** when a run's buffer exceeds `--run-buffer-size`, drop the oldest entries and log a warning. The run continues; the client may miss early thinking text.
+The server updates poll `status` via `run.onDidChangeStatus()` while waiting and from `RunResult.status` after `run.wait()`.
 
 ---
 
@@ -463,14 +460,13 @@ Granularity is hardcoded to message-level (`run.stream()`); `onDelta` is not use
 └─────────────┘                     └──────────────────┘
                                            │
                                     deliveredIndex per run
-                                    (single poller, thinking only)
+                                    (single poller, onStep only)
 ```
 
-- **Agents** — one SDK `Agent` per `agentId`. Multiple agents may exist concurrently (up to `--max-agents`). At most one non-terminal run per agent.
-- **Runs** — one SDK `Run` per `runId`. Each run owns a thinking-text buffer and a `deliveredIndex`.
-- **Polling** — each `run.poll` returns unread thinking strings, then advances `deliveredIndex`. No fan-out. Polls are mutations — do not retry.
-- **Logging** — all SDK events are logged as they arrive, regardless of poll state.
-- **Cleanup** — terminal runs retain their session until `--run-retention` (default 1 h), then evict (`run.poll` → `NOT_FOUND`). Agents are disposed on server shutdown; in-flight runs become `cancelled`.
+- **Agents** — one SDK `Agent` per `agentId`. At most one non-terminal run per agent.
+- **Runs** — one SDK `Run` per `runId`. Each run owns a message buffer and a `deliveredIndex`.
+- **Polling** — each `run.poll` returns unread conversation step messages, then advances `deliveredIndex`. No fan-out. Polls are mutations — do not retry.
+- **Cleanup** — agents are disposed on server shutdown; in-flight runs become `cancelled`. Run sessions remain pollable until shutdown.
 
 ---
 
@@ -519,8 +515,8 @@ const TERMINAL = new Set(["finished", "error", "cancelled"]);
 for (;;) {
   const poll = await client.run.poll.mutate({ runId: run.runId });
 
-  for (const text of poll.messages) {
-    console.log("[thinking]", text);
+  for (const message of poll.messages) {
+    console.log(`[${message.eventType}]`, message.content);
   }
 
   if (poll.status === "finished") {
@@ -549,11 +545,11 @@ for (;;) {
 | ID generation     | UUID v4 via `crypto.randomUUID()`                                                                       |
 | SDK credentials   | Read `process.env.CURSOR_API_KEY`; fail fast if missing                                                 |
 | Setting sources   | Always `local: { settingSources: ["all"] }` on `Agent.create()` — not exposed via API                   |
-| Event ingestion   | Background task per run: `run.stream()` → log all, buffer thinking; then `run.wait()` → set terminal status and `resultText` |
+| Event ingestion   | Background task per run: `onStep` → buffer poll messages; `run.wait()` → set terminal status and `resultText` |
 | SDK disposal      | `await agent[Symbol.asyncDispose]()` on server shutdown |
 | Graceful shutdown | `SIGINT`/`SIGTERM` → stop accepting requests → cancel in-flight SDK runs → dispose all agents → exit |
-| Thinking buffer   | In-memory string array per run; `--run-buffer-size` (default 10 000); drop oldest on overflow with warning |
-| Run retention     | Terminal run sessions kept for `--run-retention` (default 1 h); then evicted |
+| Message buffer    | In-memory array per run; unbounded |
+| Run sessions      | Kept in memory until server shutdown |
 | CORS              | Enabled (`Access-Control-Allow-Origin: *`) since there is no auth |
 
 

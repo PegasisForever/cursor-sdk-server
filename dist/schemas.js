@@ -51,21 +51,26 @@ export const StartRunOutput = z.object({
 export const PollRunInput = z.object({
     runId: RunId,
 });
+export const EventType = z.enum(["assistant", "tool_call", "thinking"]);
+export const PollMessage = z.object({
+    eventType: EventType,
+    content: z.string(),
+});
 export const PollRunOutput = z.discriminatedUnion("status", [
     z.object({
         runId: RunId,
         status: z.literal("running"),
-        messages: z.array(z.string()),
+        messages: z.array(PollMessage),
     }),
     z.object({
         runId: RunId,
         status: z.literal("finished"),
-        messages: z.array(z.string()),
+        messages: z.array(PollMessage),
         resultText: z.string(),
     }),
     z.object({
         runId: RunId,
         status: z.enum(["error", "cancelled"]),
-        messages: z.array(z.string()),
+        messages: z.array(PollMessage),
     }),
 ]);

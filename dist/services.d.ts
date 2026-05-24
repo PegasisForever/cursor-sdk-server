@@ -24,6 +24,5 @@ export declare function startRun(ctx: ServerContext, input: {
 export declare function pollRun(ctx: ServerContext, input: {
     runId: string;
 }): PollRunOutputType;
-export declare function evictExpiredRuns(ctx: ServerContext): void;
 export declare function shutdownServer(ctx: ServerContext): Promise<void>;
 //# sourceMappingURL=services.d.ts.map

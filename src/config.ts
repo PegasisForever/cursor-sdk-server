@@ -3,30 +3,10 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 export interface ServerConfig {
   port: number;
   host: string;
-  maxAgents: number;
-  runRetentionMs: number;
-  runBufferSize: number;
   logLevel: LogLevel;
 }
 
 const LOG_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
-
-function parseDuration(value: string): number {
-  const match = value.trim().match(/^(\d+(?:\.\d+)?)(ms|s|m|h|d)$/i);
-  if (!match) {
-    throw new Error(`Invalid duration: ${value}`);
-  }
-  const amount = Number(match[1]);
-  const unit = match[2].toLowerCase();
-  const multipliers: Record<string, number> = {
-    ms: 1,
-    s: 1000,
-    m: 60_000,
-    h: 3_600_000,
-    d: 86_400_000,
-  };
-  return amount * multipliers[unit]!;
-}
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
   const result: Record<string, string | boolean> = {};
@@ -85,24 +65,9 @@ export function loadConfig(argv = process.argv.slice(2)): ServerConfig {
     throw new Error(`Invalid log level: ${logLevel}`);
   }
 
-  const runRetention = readString(
-    args,
-    "run-retention",
-    "CURSOR_SDK_SERVER_RUN_RETENTION",
-    "1h",
-  );
-
   return {
     port: readNumber(args, "port", "CURSOR_SDK_SERVER_PORT", 3847),
     host: readString(args, "host", "CURSOR_SDK_SERVER_HOST", "127.0.0.1"),
-    maxAgents: readNumber(args, "max-agents", "CURSOR_SDK_SERVER_MAX_AGENTS", 50),
-    runRetentionMs: parseDuration(runRetention),
-    runBufferSize: readNumber(
-      args,
-      "run-buffer-size",
-      "CURSOR_SDK_SERVER_RUN_BUFFER_SIZE",
-      10_000,
-    ),
     logLevel,
   };
 }

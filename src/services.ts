@@ -1,4 +1,4 @@
-import { Agent, CursorAgentError, type ModelSelection, type Run, type SDKMessage } from "@cursor/sdk";
+import { Agent, CursorAgentError, type ModelSelection, type Run } from "@cursor/sdk";
 import { TRPCError } from "@trpc/server";
 import type { ServerConfig } from "./config.js";
 import { generateAgentId, generateRunId } from "./ids.js";
@@ -6,7 +6,13 @@ import type { Logger } from "./logger.js";
 import { AgentRegistry } from "./agent-registry.js";
 import { RunRegistry, type RunSession } from "./run-registry.js";
 import { toSdkMcpServers } from "./mcp.js";
-import type { CreateAgentInputType, PollRunOutputType, RunStatusType } from "./schemas.js";
+import { conversationStepToPollMessage } from "./sdk-events.js";
+import type {
+  CreateAgentInputType,
+  PollMessageType,
+  PollRunOutputType,
+  RunStatusType,
+} from "./schemas.js";
 
 export interface ServerContext {
   apiKey: string;
@@ -25,60 +31,36 @@ function isTerminalStatus(status: RunStatusType): boolean {
   return status === "finished" || status === "error" || status === "cancelled";
 }
 
-function appendThinking(
-  session: RunSession,
-  text: string,
-  bufferSize: number,
-  logger: Logger,
-): void {
-  session.thinkingBuffer.push(text);
-  if (session.thinkingBuffer.length > bufferSize) {
-    const dropped = session.thinkingBuffer.length - bufferSize;
-    session.thinkingBuffer.splice(0, dropped);
-    logger.warn(
-      `Thinking buffer overflow for run ${session.runId}; dropped ${dropped} oldest entries`,
-    );
-  }
+function appendPollMessage(session: RunSession, message: PollMessageType): void {
+  session.messageBuffer.push(message);
 }
 
 async function ingestRun(
   ctx: ServerContext,
   session: RunSession,
 ): Promise<void> {
-  const { logger, config, agents } = ctx;
+  const { agents } = ctx;
   const { sdkRun, agentId } = session;
 
-  try {
-    for await (const event of sdkRun.stream()) {
-      logSdkEvent(logger, session.runId, event);
-      if (event.type === "thinking") {
-        appendThinking(session, event.text, config.runBufferSize, logger);
-      }
-      session.status = sdkRun.status as RunStatusType;
-    }
+  const unsubscribe = sdkRun.onDidChangeStatus((status) => {
+    session.status = status as RunStatusType;
+  });
 
+  try {
     const result = await sdkRun.wait();
     session.status = result.status as RunStatusType;
     if (result.status === "finished") {
       session.resultText = result.result ?? "";
     }
   } catch (error) {
-    logger.error(`Run ingestion failed for ${session.runId}`, error);
+    ctx.logger.error(`Run ingestion failed for ${session.runId}`, error);
     if (!isTerminalStatus(session.status)) {
       session.status = "error";
     }
   } finally {
-    session.terminalAt = Date.now();
+    unsubscribe();
     agents.markInactive(agentId);
   }
-}
-
-function logSdkEvent(
-  logger: Logger,
-  runId: string,
-  event: SDKMessage,
-): void {
-  logger.debug(`SDK event for ${runId}`, event);
 }
 
 export async function createAgent(
@@ -89,13 +71,6 @@ export async function createAgent(
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Server is shutting down",
-    });
-  }
-
-  if (ctx.agents.isAtCapacity()) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "Maximum agent capacity reached",
     });
   }
 
@@ -158,9 +133,20 @@ export async function startRun(
     });
   }
 
+  const runId = generateRunId();
+  const sessionHolder: { session?: RunSession } = {};
+
   let sdkRun: Run;
   try {
-    sdkRun = await record.agent.send(input.prompt);
+    sdkRun = await record.agent.send(input.prompt, {
+      onStep({ step }) {
+        const session = sessionHolder.session;
+        if (!session) {
+          return;
+        }
+        appendPollMessage(session, conversationStepToPollMessage(step));
+      },
+    });
   } catch (error) {
     if (isCursorAgentError(error)) {
       throw new TRPCError({
@@ -171,7 +157,6 @@ export async function startRun(
     throw error;
   }
 
-  const runId = generateRunId();
   record.hasActiveRun = true;
 
   const session: RunSession = {
@@ -179,10 +164,11 @@ export async function startRun(
     agentId: input.agentId,
     sdkRun,
     status: sdkRun.status as RunStatusType,
-    thinkingBuffer: [],
+    messageBuffer: [],
     deliveredIndex: 0,
     backgroundTask: Promise.resolve(),
   };
+  sessionHolder.session = session;
 
   session.backgroundTask = ingestRun(ctx, session);
   ctx.runs.set(session);
@@ -203,19 +189,8 @@ export function pollRun(
     });
   }
 
-  if (
-    session.terminalAt !== undefined &&
-    Date.now() - session.terminalAt > ctx.config.runRetentionMs
-  ) {
-    ctx.runs.delete(input.runId);
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: `Run evicted after retention: ${input.runId}`,
-    });
-  }
-
-  const messages = session.thinkingBuffer.slice(session.deliveredIndex);
-  session.deliveredIndex = session.thinkingBuffer.length;
+  const messages = session.messageBuffer.slice(session.deliveredIndex);
+  session.deliveredIndex = session.messageBuffer.length;
 
   if (session.status === "finished") {
     return {
@@ -239,19 +214,6 @@ export function pollRun(
     status: "running",
     messages,
   };
-}
-
-export function evictExpiredRuns(ctx: ServerContext): void {
-  const now = Date.now();
-  for (const session of ctx.runs.values()) {
-    if (
-      session.terminalAt !== undefined &&
-      now - session.terminalAt > ctx.config.runRetentionMs
-    ) {
-      ctx.runs.delete(session.runId);
-      ctx.logger.debug(`Evicted run ${session.runId}`);
-    }
-  }
 }
 
 export async function shutdownServer(ctx: ServerContext): Promise<void> {

@@ -264,50 +264,108 @@ export declare const PollRunInput: z.ZodObject<{
 }, {
     runId: string;
 }>;
+export declare const EventType: z.ZodEnum<["assistant", "tool_call", "thinking"]>;
+export declare const PollMessage: z.ZodObject<{
+    eventType: z.ZodEnum<["assistant", "tool_call", "thinking"]>;
+    content: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    eventType: "assistant" | "tool_call" | "thinking";
+    content: string;
+}, {
+    eventType: "assistant" | "tool_call" | "thinking";
+    content: string;
+}>;
 export declare const PollRunOutput: z.ZodDiscriminatedUnion<"status", [z.ZodObject<{
     runId: z.ZodString;
     status: z.ZodLiteral<"running">;
-    messages: z.ZodArray<z.ZodString, "many">;
+    messages: z.ZodArray<z.ZodObject<{
+        eventType: z.ZodEnum<["assistant", "tool_call", "thinking"]>;
+        content: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
     status: "running";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
 }, {
     status: "running";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
 }>, z.ZodObject<{
     runId: z.ZodString;
     status: z.ZodLiteral<"finished">;
-    messages: z.ZodArray<z.ZodString, "many">;
+    messages: z.ZodArray<z.ZodObject<{
+        eventType: z.ZodEnum<["assistant", "tool_call", "thinking"]>;
+        content: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }>, "many">;
     resultText: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     status: "finished";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
     resultText: string;
 }, {
     status: "finished";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
     resultText: string;
 }>, z.ZodObject<{
     runId: z.ZodString;
     status: z.ZodEnum<["error", "cancelled"]>;
-    messages: z.ZodArray<z.ZodString, "many">;
+    messages: z.ZodArray<z.ZodObject<{
+        eventType: z.ZodEnum<["assistant", "tool_call", "thinking"]>;
+        content: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }, {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
     status: "error" | "cancelled";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
 }, {
     status: "error" | "cancelled";
     runId: string;
-    messages: string[];
+    messages: {
+        eventType: "assistant" | "tool_call" | "thinking";
+        content: string;
+    }[];
 }>]>;
 export type AgentIdType = z.infer<typeof AgentId>;
 export type RunIdType = z.infer<typeof RunId>;
 export type RunStatusType = z.infer<typeof RunStatus>;
 export type CreateAgentInputType = z.infer<typeof CreateAgentInput>;
 export type StartRunInputType = z.infer<typeof StartRunInput>;
+export type EventTypeType = z.infer<typeof EventType>;
+export type PollMessageType = z.infer<typeof PollMessage>;
 export type PollRunOutputType = z.infer<typeof PollRunOutput>;
 //# sourceMappingURL=schemas.d.ts.map

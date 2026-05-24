@@ -1,15 +1,14 @@
 import type { Run } from "@cursor/sdk";
-import type { RunStatusType } from "./schemas.js";
+import type { PollMessageType, RunStatusType } from "./schemas.js";
 
 export interface RunSession {
   runId: string;
   agentId: string;
   sdkRun: Run;
   status: RunStatusType;
-  thinkingBuffer: string[];
+  messageBuffer: PollMessageType[];
   deliveredIndex: number;
   resultText?: string;
-  terminalAt?: number;
   backgroundTask: Promise<void>;
 }
 

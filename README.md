@@ -1,6 +1,6 @@
 # cursor-sdk-server
 
-Node.js HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`) with a [tRPC](https://trpc.io) + [Zod](https://zod.dev) API. Create local agents, start runs, and poll for thinking-only progress messages.
+Node.js HTTP server that wraps the [Cursor TypeScript SDK](https://cursor.com/docs/sdk/typescript) (`@cursor/sdk`) with a [tRPC](https://trpc.io) + [Zod](https://zod.dev) API. Create local agents, start runs, and poll for conversation step progress messages.
 
 See [SPEC.md](./SPEC.md) for the full API specification.
 
@@ -24,9 +24,6 @@ npm run dev
 |------|---------|---------|-------------|
 | `--port` | `CURSOR_SDK_SERVER_PORT` | `3847` | HTTP listen port |
 | `--host` | `CURSOR_SDK_SERVER_HOST` | `127.0.0.1` | Bind address |
-| `--max-agents` | `CURSOR_SDK_SERVER_MAX_AGENTS` | `50` | Max concurrent agents |
-| `--run-retention` | `CURSOR_SDK_SERVER_RUN_RETENTION` | `1h` | Terminal run retention |
-| `--run-buffer-size` | `CURSOR_SDK_SERVER_RUN_BUFFER_SIZE` | `10000` | Max thinking strings per run |
 | `--log-level` | `CURSOR_SDK_SERVER_LOG_LEVEL` | `info` | `debug` \| `info` \| `warn` \| `error` |
 
 ## Install (Linux x64)
@@ -106,8 +103,8 @@ const TERMINAL = new Set(["finished", "error", "cancelled"]);
 for (;;) {
   const poll = await client.run.poll.mutate({ runId: run.runId });
 
-  for (const text of poll.messages) {
-    console.log("[thinking]", text);
+  for (const message of poll.messages) {
+    console.log(`[${message.eventType}]`, message.content);
   }
 
   if (poll.status === "finished") {
@@ -133,7 +130,7 @@ A runnable example lives in [`examples/client/`](./examples/client/).
 |-----------|------|-------------|
 | `agent.create` | mutation | Create a local agent |
 | `run.start` | mutation | Send a prompt; returns `runId` |
-| `run.poll` | mutation | Fetch unread thinking text |
+| `run.poll` | mutation | Fetch unread conversation step messages |
 
 ## Development
 
