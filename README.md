@@ -39,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/ma
 Install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash -s -- 0.5.0
+curl -fsSL https://raw.githubusercontent.com/PegasisForever/cursor-sdk-server/main/scripts/install.sh | bash -s -- 0.5.1
 ```
 
 Then run:
