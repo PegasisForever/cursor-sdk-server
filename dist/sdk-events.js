@@ -1,12 +1,8 @@
-function truncate(text, max = 60) {
-    const oneLine = text.replace(/\s+/g, " ").trim();
-    if (oneLine.length <= max) {
-        return oneLine;
-    }
-    return `${oneLine.slice(0, max - 1)}…`;
+function oneLine(text) {
+    return text.replace(/\s+/g, " ").trim();
 }
 function quote(text) {
-    const t = truncate(text);
+    const t = oneLine(text);
     return /[\s"'`]/.test(t) ? `"${t.replace(/"/g, '\\"')}"` : t;
 }
 function getResult(tool) {

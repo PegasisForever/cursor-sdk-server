@@ -6,16 +6,12 @@ type ConversationStep = Parameters<NonNullable<SendOptions["onStep"]>>[0]["step"
 type ToolMessage = Extract<ConversationStep, { type: "toolCall" }>["message"];
 type ToolResult = { status: "success" | "error"; value?: unknown };
 
-function truncate(text: string, max = 60): string {
-  const oneLine = text.replace(/\s+/g, " ").trim();
-  if (oneLine.length <= max) {
-    return oneLine;
-  }
-  return `${oneLine.slice(0, max - 1)}…`;
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function quote(text: string): string {
-  const t = truncate(text);
+  const t = oneLine(text);
   return /[\s"'`]/.test(t) ? `"${t.replace(/"/g, '\\"')}"` : t;
 }
 
