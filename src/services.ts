@@ -43,6 +43,11 @@ async function ingestRun(
   const { sdkRun, agentId } = session;
 
   const unsubscribe = sdkRun.onDidChangeStatus((status) => {
+    if (status !== session.status) {
+      ctx.logger.info(
+        `Run ${session.runId} status: ${session.status} -> ${status}`,
+      );
+    }
     session.status = status as RunStatusType;
   });
 
@@ -51,6 +56,17 @@ async function ingestRun(
     session.status = result.status as RunStatusType;
     if (result.status === "finished") {
       session.resultText = result.result ?? "";
+    } else {
+      // The underlying @cursor/sdk Run can resolve with a non-finished status
+      // (typically `error` from an upstream LLM API failure: rate-limit,
+      // context-overflow, model 5xx) WITHOUT throwing — so the catch block
+      // below never fires for the common "silent error" case. Log the full
+      // result so the upstream error reason ends up in cursor-sdk-server.log
+      // instead of being silently discarded.
+      ctx.logger.error(
+        `Run ${session.runId} ended with non-finished status: ${result.status}`,
+        result,
+      );
     }
   } catch (error) {
     ctx.logger.error(`Run ingestion failed for ${session.runId}`, error);
